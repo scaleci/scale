@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -x
+set -e
+export APP=${1:?"app is required"}
+export VERSION=${2:?"version is required"}
+export BUILD_DIR=./build
+export RELEASE_APP_NAME=nestor-prod
+
+rm -f "$BUILD_DIR/$APP"
+mkdir -p "$BUILD_DIR"
+
+go build -ldflags="-X github.com/scaleci/scale/cmd.version=${VERSION}" -x -v -o $BUILD_DIR/$RELEASE_APP_NAME github.com/scaleci/scale
+
+echo "Binary built successfully: $BUILD_DIR/$RELEASE_APP_NAME"
