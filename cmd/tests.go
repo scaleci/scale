@@ -21,12 +21,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var index int
+var total int
+
 var globCmd = &cobra.Command{
 	Use:   "glob",
 	Short: "Glob files in a given path",
 	Long:  "Glob files in a given path",
 	Args:  cobra.ExactArgs(1),
 	Run:   runGlob,
+}
+
+var splitCmd = &cobra.Command{
+	Use:   "split",
+	Short: "Split files provided to it according to its execution times",
+	Long:  "Split files provided to it according to its execution times",
+	Args:  cobra.MinimumNArgs(1),
+	Run:   runSplit,
 }
 
 // testsCmd represents the tests command
@@ -44,7 +55,20 @@ func runGlob(cmd *cobra.Command, args []string) {
 	}
 }
 
+func runSplit(cmd *cobra.Command, inputFiles []string) {
+	splitFiles := tests.Split(inputFiles, int64(index), int64(total))
+
+	for i := 0; i < len(splitFiles); i++ {
+		fmt.Println(splitFiles[i])
+	}
+}
+
 func init() {
 	RootCmd.AddCommand(testsCmd)
 	testsCmd.AddCommand(globCmd)
+	testsCmd.AddCommand(splitCmd)
+
+	f := splitCmd.Flags()
+	f.IntVarP(&index, "index", "i", -1, "index of the container within which tests are run")
+	f.IntVarP(&total, "total", "t", -1, "total number of containers")
 }
