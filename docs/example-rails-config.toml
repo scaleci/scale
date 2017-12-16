@@ -31,7 +31,7 @@ bundle exec rspec --profile 10 \
           --out /tmp/test-results/rspec.xml \
           --require ./lib/block_progress_formatter.rb \
           --format BlockProgressFormatter \
-          $(scale tests glob "spec/**/*_spec.rb" | scale tests split)
+          $(scale tests glob "spec/**/*_spec.rb" |xargs scale tests split)
 """
     depends_on = ["db.setup"]
     parallelism = 8
