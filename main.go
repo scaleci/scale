@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/scaleci/scale/cmd"
 
 func main() {
-	fmt.Println("scale")
+	cmd.Execute()
 }
