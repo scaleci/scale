@@ -1,7 +1,7 @@
 title = "Rails App"
 
 [global]
-  # If build_with is not spcified then "Dockerfile" is assumed
+  # If build_with is not specified then "Dockerfile" is assumed
   build_with = "Dockerfile.test"
   version = 1
   test_results_path = "/tmp/test-results/rspec.xml"
