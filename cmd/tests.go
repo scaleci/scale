@@ -16,13 +16,15 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/scaleci/scale/tests"
 	"github.com/spf13/cobra"
 )
 
-var index int
-var total int
+var index int = -1
+var total int = -1
 
 var globCmd = &cobra.Command{
 	Use:   "glob",
@@ -56,8 +58,29 @@ func runGlob(cmd *cobra.Command, args []string) {
 }
 
 func runSplit(cmd *cobra.Command, inputFiles []string) {
-	splitFiles := tests.Split(inputFiles, int64(index), int64(total))
+	envIndexStr := os.Getenv("SCALE_CI_INDEX")
+	if envIndexStr != "" {
+		envIndex, err := strconv.Atoi(envIndexStr)
+		if err == nil {
+			index = envIndex
+		}
+	}
 
+	envTotalStr := os.Getenv("SCALE_CI_TOTAL")
+	if envIndexStr != "" {
+		envTotal, err := strconv.Atoi(envTotalStr)
+		if err == nil {
+			total = envTotal
+		}
+	}
+
+	if index < 0 || total < 1 {
+		fmt.Printf("tests split command needs index and total, set by flags -i and -t respectively\n")
+		fmt.Printf("or by setting the env variables SCALE_CI_INDEX and SCALE_CI_TOTAL respectively\n")
+		os.Exit(1)
+	}
+
+	splitFiles := tests.Split(inputFiles, int64(index), int64(total))
 	for i := 0; i < len(splitFiles); i++ {
 		fmt.Println(splitFiles[i])
 	}
