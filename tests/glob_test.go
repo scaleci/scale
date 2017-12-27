@@ -2,19 +2,27 @@ package tests
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 func TestRegularGlob(t *testing.T) {
 	matches := Glob("test_dir/**/*.txt")
-	if matches_len := len(matches); matches_len != 3 {
-		t.Fatal(fmt.Sprintf("Expected matches to be 3, got %d\n", matches_len))
+	expectedMatches := []string{
+		"test_dir/bar.txt",
+		"test_dir/baz.txt",
+		"test_dir/foo/test.txt",
+	}
+	if !reflect.DeepEqual(matches, expectedMatches) {
+		t.Fatal(fmt.Sprintf("Expected matches to be %+v, got %+v\n", expectedMatches, matches))
 	}
 }
 
 func TestGlobWithInvalidPattern(t *testing.T) {
 	matches := Glob("test_dir\\**/*.txt")
-	if matches_len := len(matches); matches_len != 0 {
-		t.Fatal(fmt.Sprintf("Expected matches to be 0, got %d\n", matches_len))
+	expectedMatches := []string{}
+
+	if !reflect.DeepEqual(matches, expectedMatches) {
+		t.Fatal(fmt.Sprintf("Expected matches to be %+v, got %+v\n", expectedMatches, matches))
 	}
 }
