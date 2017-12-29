@@ -44,10 +44,18 @@ func runTests(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	defer run.StopServices(app)
+
 	fmt.Printf("Running %s...\n", app.Name)
 	err = run.Build(app)
 	if err != nil {
 		fmt.Printf("Error building app %s: %+v\n", app.Name, err)
+		os.Exit(1)
+	}
+
+	err = run.StartServices(app)
+	if err != nil {
+		fmt.Printf("Error starting services for %s: %+v\n", app.Name, err)
 		os.Exit(1)
 	}
 }
