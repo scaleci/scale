@@ -1,9 +1,14 @@
 package run
 
-import "github.com/BurntSushi/toml"
+import (
+	"fmt"
+	"time"
+
+	"github.com/BurntSushi/toml"
+)
 
 type App struct {
-	Title        string
+	Name         string `toml:"title"`
 	GlobalConfig Config `toml:"global"`
 	Services     map[string]*Service
 	Stages       map[string]*Stage
@@ -26,5 +31,14 @@ func Parse(path string) (*App, error) {
 		}
 	}
 
+	if app.GlobalConfig.BuildWith == "" {
+		app.GlobalConfig.BuildWith = "Dockerfile"
+	}
+
+	app.GlobalConfig.Tag = fmt.Sprintf("%d", time.Now().UnixNano())
 	return &app, nil
+}
+
+func (a *App) ImageName() string {
+	return fmt.Sprintf("scale-%s:%s", a.Name, a.GlobalConfig.Tag)
 }

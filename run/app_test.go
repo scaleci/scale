@@ -12,17 +12,17 @@ func TestParse(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Expected nil error, got %+v\n", err))
 	}
 
-	testTitle(app, t)
+	testName(app, t)
 	testConfig(app, t)
 	testServices(app, t)
 	testStages(app, t)
 }
 
-func testTitle(app *App, t *testing.T) {
-	expectedTitle := "Rails App"
+func testName(app *App, t *testing.T) {
+	expectedName := "Rails App"
 
-	if app.Title != expectedTitle {
-		t.Fatal(fmt.Sprintf("Expected title to be %s, got %\n", expectedTitle, app.Title))
+	if app.Name != expectedName {
+		t.Fatal(fmt.Sprintf("Expected name to be %s, got %s\n", expectedName, app.Name))
 	}
 }
 
