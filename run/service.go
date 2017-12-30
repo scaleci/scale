@@ -12,8 +12,8 @@ type Service struct {
 	Port        string
 	ContainerID string
 	Protocol    string
-	// Set once the container is started
-	HostAndPort string
+	// Host:Port -> Set once the container is started
+	Socket string
 }
 
 func (s *Service) PortAsArgs() []string {
@@ -36,7 +36,7 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.ContainerID = strings.Trim(string(out), "\n")
-	err = s.SetHostAndPort()
+	err = s.SetSocket()
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-func (s *Service) SetHostAndPort() error {
+func (s *Service) SetSocket() error {
 	if s.ContainerID != "" {
 		cmdName := "docker"
 		cmdArgs := []string{
@@ -73,7 +73,7 @@ func (s *Service) SetHostAndPort() error {
 		if err != nil {
 			return err
 		}
-		s.HostAndPort = strings.Trim(string(out), "\n")
+		s.Socket = strings.Trim(string(out), "\n")
 
 		return nil
 	}
