@@ -13,11 +13,12 @@ title = "Rails App"
 [services]
   [services.database]
     image = "scaleci/postgres:9.6"
-    ports = ["5432/tcp"]
+    port = "5432/tcp"
+    protocol = "postgres"
 
   [services.redis]
     image = "scaleci/redis:2.1"
-    ports = ["6379/tcp"]
+    port = "6379/tcp"
 
 [stages]
   [stages."db.setup"]
