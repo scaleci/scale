@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
-	"strings"
 )
 
 func Build(app *App) error {
@@ -43,7 +42,7 @@ func Build(app *App) error {
 
 func StartServices(app *App) error {
 	for _, s := range app.Services {
-		err := startService(s)
+		err := s.Start()
 		if err != nil {
 			return err
 		}
@@ -54,45 +53,10 @@ func StartServices(app *App) error {
 
 func StopServices(app *App) error {
 	for _, s := range app.Services {
-		err := stopService(s)
+		err := s.Stop()
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func startService(s *Service) error {
-	cmdName := "docker"
-	cmdArgs := []string{
-		"run",
-		"-d",
-	}
-
-	cmdArgs = append(cmdArgs, s.PortsAsArgs()...)
-	cmdArgs = append(cmdArgs, s.Image)
-	cmd := exec.Command(cmdName, cmdArgs...)
-	out, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-	s.ContainerID = strings.Trim(string(out), "\n")
-
-	fmt.Printf("[%s] Started with container ID %s\n", s.ID, s.ContainerID)
-	return nil
-}
-
-func stopService(s *Service) error {
-	if s.ContainerID != "" {
-		cmd := exec.Command("docker", "stop", s.ContainerID, "-t", 5)
-		_, err := cmd.Output()
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("[%s] Stopped with container ID %s\n", s.ID, s.ContainerID)
-		return nil
 	}
 
 	return nil

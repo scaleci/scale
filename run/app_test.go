@@ -53,21 +53,21 @@ func testConfig(app *App, t *testing.T) {
 
 func testServices(app *App, t *testing.T) {
 	dbService := app.Services["database"]
-	testService(dbService, "database", "scaleci/postgres:9.6", []string{"5432/tcp"}, t)
+	testService(dbService, "database", "scaleci/postgres:9.6", "5432/tcp", t)
 
 	redisService := app.Services["redis"]
-	testService(redisService, "redis", "scaleci/redis:2.1", []string{"6379/tcp"}, t)
+	testService(redisService, "redis", "scaleci/redis:2.1", "6379/tcp", t)
 }
 
-func testService(s *Service, id string, image string, ports []string, t *testing.T) {
+func testService(s *Service, id string, image string, port string, t *testing.T) {
 	if s.ID != id {
 		t.Fatal(fmt.Sprintf("Expected s.ID to be %s, got %s\n", id, s.ID))
 	}
 	if s.Image != image {
 		t.Fatal(fmt.Sprintf("Expected s.Image to be %s, got %s\n", image, s.Image))
 	}
-	if !slicesEqual(s.Ports, ports) {
-		t.Fatal(fmt.Sprintf("Expected s.Ports to be %+v, got %+v\n", ports, s.Ports))
+	if s.Port != port {
+		t.Fatal(fmt.Sprintf("Expected s.Port to be %s, got %s\n", port, s.Port))
 	}
 }
 
