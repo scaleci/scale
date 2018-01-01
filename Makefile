@@ -13,6 +13,10 @@ build: clean
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
 	@script/build $(APP) $(VERSION)
 
+build_linux: clean
+	@echo "$(OK_COLOR)==> Building revision $(VERSION) for Linux...$(NO_COLOR)"
+	@script/build_linux $(APP) $(VERSION)
+
 prod: clean
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
 	@script/prod $(APP) $(VERSION)
