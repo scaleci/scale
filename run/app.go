@@ -26,6 +26,7 @@ func Parse(path string) (*App, error) {
 	}
 	for id, s := range app.Stages {
 		s.ID = id
+		s.ParentApp = &app
 		if s.Parallelism == 0 {
 			s.Parallelism = 1
 		}
@@ -41,4 +42,20 @@ func Parse(path string) (*App, error) {
 
 func (a *App) ImageName() string {
 	return fmt.Sprintf("scale-%s:%s", a.Name, a.GlobalConfig.Tag)
+}
+
+func (a *App) Env() map[string]string {
+	finalEnv := map[string]string{}
+
+	for k, v := range a.GlobalConfig.Env {
+		finalEnv[k] = v
+	}
+
+	for _, s := range a.Services {
+		for key, value := range s.Env() {
+			finalEnv[key] = value
+		}
+	}
+
+	return finalEnv
 }

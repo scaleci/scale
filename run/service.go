@@ -9,6 +9,7 @@ import (
 type Service struct {
 	ID          string
 	Image       string
+	Host        string
 	Port        string
 	ContainerID string
 	Protocol    string
@@ -74,9 +75,32 @@ func (s *Service) SetSocket() error {
 			return err
 		}
 		s.Socket = strings.Trim(string(out), "\n")
+		s.Host = strings.Split(s.Socket, ":")[0]
 
 		return nil
 	}
 
 	return fmt.Errorf("ContainerID is not set")
+}
+
+func (s *Service) Env() map[string]string {
+	env := map[string]string{}
+	protocol := s.ID
+
+	if s.Protocol != "" {
+		protocol = s.Protocol
+	}
+
+	urlKey := fmt.Sprintf("%s_URL", strings.ToUpper(s.ID))
+	urlValue := fmt.Sprintf("%s://%s", protocol, s.Socket)
+	hostKey := fmt.Sprintf("%s_HOST", strings.ToUpper(s.ID))
+	hostValue := s.Host
+	portKey := fmt.Sprintf("%s_PORT", strings.ToUpper(s.ID))
+	portValue := strings.Split(s.Port, "/")[0]
+
+	env[urlKey] = urlValue
+	env[hostKey] = hostValue
+	env[portKey] = portValue
+
+	return env
 }

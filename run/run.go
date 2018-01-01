@@ -61,3 +61,16 @@ func StopServices(app *App) error {
 
 	return nil
 }
+
+func RunStages(app *App) error {
+	for _, s := range app.Stages {
+		if len(s.DependsOn) == 0 {
+			err := s.Run()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
