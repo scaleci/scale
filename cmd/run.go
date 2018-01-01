@@ -58,6 +58,12 @@ func runTests(cmd *cobra.Command, args []string) {
 		fmt.Printf("Error starting services for %s: %+v\n", app.Name, err)
 		os.Exit(1)
 	}
+
+	err = run.RunStages(app)
+	if err != nil {
+		fmt.Printf("Error running stages for %s: %+v\n", app.Name, err)
+		os.Exit(1)
+	}
 }
 
 func init() {
