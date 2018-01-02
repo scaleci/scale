@@ -19,6 +19,8 @@ func (s *Stage) Run() error {
 	cmdName := "docker"
 	cmdArgs := []string{
 		"run",
+		"--mount",
+		fmt.Sprintf("type=bind,source=%s,target=/bin/scale", scaleBinaryPath),
 	}
 
 	for k, v := range s.ParentApp.Env() {

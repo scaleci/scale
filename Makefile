@@ -9,7 +9,7 @@ VERSION=$(BASE_VERSION)-$(REVISION)
 
 all: build
 
-build: clean
+build: build_linux
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
 	@script/build $(APP) $(VERSION)
 
