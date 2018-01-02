@@ -9,6 +9,7 @@ title = "Rails App"
     RAILS_ENV = "test"
     AUTH_URL = "http://example.com/a/auth"
     AUTH_CLIENT_ID = "deadbeef"
+    DATABASE_USER=postgres
 
 [services]
   [services.database]
@@ -22,7 +23,10 @@ title = "Rails App"
 
 [stages]
   [stages."db.setup"]
-    command = "bundle exec rake db:create db:structure:load"
+    command = """
+bundle exec rake db:create db:structure:load && \
+scale tests parallelize postgres --opts user=$DATABASE_USER,host=$DATABASE_HOST,port=$DATABASE_PORT,password=$DATABASE_PASSWORD
+"""
     # parallelism is 1 by default (so only one container is spawned)
 
   [stages.rspec]
@@ -34,8 +38,11 @@ bundle exec rspec --profile 10 \
 --format BlockProgressFormatter \
 $(scale tests glob "spec/**/*_spec.rb" |xargs scale tests split)\
 """
-    depends_on = ["db.setup"]
     parallelism = 8
+    depends_on = ["db.setup"]
+    # this is the default for postgres so we don't need to do this by default
+    [stages.rspec.parallelize_method]
+      postgres = "schema"
 
   [stages.rubocop]
     command = "bundle exec rubocop"
