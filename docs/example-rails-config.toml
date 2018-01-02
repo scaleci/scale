@@ -23,6 +23,12 @@ title = "Rails App"
 
 [stages]
   [stages."db.setup"]
+    # by default scale tests parallelize postgres will look for the DATABASE_USER,DATABASE_HOST,DATABASE_PORT,DATABASE_PASSWORD
+    # env vars so you don't have to set them
+    #
+    # for this example, since DATABASE_USER is set to "postgres" above and password is empty and DATABASE_HOST, DATABASE_PORT
+    # are set by defining services
+    # we can replace the command below with `scale tests parallelize postgres`
     command = """
 bundle exec rake db:create db:structure:load && \
 scale tests parallelize postgres --opts user=$DATABASE_USER,host=$DATABASE_HOST,port=$DATABASE_PORT,password=$DATABASE_PASSWORD
