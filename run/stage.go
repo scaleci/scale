@@ -1,9 +1,9 @@
 package run
 
 import (
-	"bufio"
 	"fmt"
-	"os/exec"
+
+	"github.com/scaleci/scale/exec"
 )
 
 type Stage struct {
@@ -31,28 +31,5 @@ func (s *Stage) Run() error {
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c")
 	cmdArgs = append(cmdArgs, s.Command)
 
-	cmd := exec.Command(cmdName, cmdArgs...)
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			fmt.Printf("[docker.run.%s] %s\n", s.ID, scanner.Text())
-		}
-	}()
-
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return exec.Run(cmdName, cmdArgs, fmt.Sprintf("docker.run.%s", s.ID))
 }
