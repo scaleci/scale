@@ -38,9 +38,15 @@ func StopServices(app *App) error {
 }
 
 func RunStages(app *App) error {
+	var total int64 = 0
+
+	for _, s := range app.Stages {
+		total += s.Parallelism
+	}
+
 	for _, s := range app.Stages {
 		if len(s.DependsOn) == 0 {
-			err := s.Run()
+			err := s.Run(total)
 			if err != nil {
 				return err
 			}

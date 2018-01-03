@@ -15,7 +15,7 @@ type Stage struct {
 	ParentApp *App
 }
 
-func (s *Stage) Run() error {
+func (s *Stage) Run(totalContainers int64) error {
 	cmdName := "docker"
 	cmdArgs := []string{
 		"run",
@@ -23,7 +23,18 @@ func (s *Stage) Run() error {
 		fmt.Sprintf("type=bind,source=%s,target=/bin/scale", scaleBinaryPath),
 	}
 
-	for k, v := range s.ParentApp.Env() {
+	index := 0
+
+	env := s.ParentApp.Env()
+	// Inject "running state" into the container
+	// MAX is the total number of containers (across all stages) that are part of this run
+	env["SCALE_CI_MAX"] = fmt.Sprintf("%d", totalContainers)
+	// TOTAL is the parallelism of the current stage
+	env["SCALE_CI_TOTAL"] = fmt.Sprintf("%d", s.Parallelism)
+	// INDEX is the index of the current running container
+	env["SCALE_CI_INDEX"] = fmt.Sprintf("%d", index)
+
+	for k, v := range env {
 		cmdArgs = append(cmdArgs, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
 
