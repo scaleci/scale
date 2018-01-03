@@ -92,15 +92,21 @@ func (s *Service) Env() map[string]string {
 	}
 
 	urlKey := fmt.Sprintf("%s_URL", strings.ToUpper(s.ID))
+	protocolUrlKey := fmt.Sprintf("%s_URL", strings.ToUpper(protocol))
 	urlValue := fmt.Sprintf("%s://%s", protocol, s.Socket)
 	hostKey := fmt.Sprintf("%s_HOST", strings.ToUpper(s.ID))
+	protocolHostKey := fmt.Sprintf("%s_HOST", strings.ToUpper(protocol))
 	hostValue := s.Host
 	portKey := fmt.Sprintf("%s_PORT", strings.ToUpper(s.ID))
+	protocolPortKey := fmt.Sprintf("%s_PORT", strings.ToUpper(protocol))
 	portValue := strings.Split(s.Port, "/")[0]
 
 	env[urlKey] = urlValue
+	env[protocolUrlKey] = urlValue
 	env[hostKey] = hostValue
+	env[protocolHostKey] = hostValue
 	env[portKey] = portValue
+	env[protocolPortKey] = portValue
 
 	return env
 }
