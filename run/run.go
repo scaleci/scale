@@ -1,9 +1,7 @@
 package run
 
 import (
-	"bufio"
-	"fmt"
-	"os/exec"
+	"github.com/scaleci/scale/exec"
 )
 
 func Build(app *App) error {
@@ -14,30 +12,7 @@ func Build(app *App) error {
 		"-f", app.GlobalConfig.BuildWith,
 		"-t", app.ImageName()}
 
-	cmd := exec.Command(cmdName, cmdArgs...)
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			fmt.Printf("[docker build] %s\n", scanner.Text())
-		}
-	}()
-
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return exec.Run(cmdName, cmdArgs, "docker.build")
 }
 
 func StartServices(app *App) error {
