@@ -9,7 +9,7 @@ title = "Rails App"
     RAILS_ENV = "test"
     AUTH_URL = "http://example.com/a/auth"
     AUTH_CLIENT_ID = "deadbeef"
-    DATABASE_USER=postgres
+    DATABASE_USER = "postgres"
 
 [services]
   [services.database]
