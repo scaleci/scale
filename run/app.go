@@ -31,11 +31,12 @@ func Parse(path string) (*App, error) {
 	}
 	for id, s := range app.Stages {
 		s.ID = id
+		s.Command = strings.TrimSpace(s.Command)
 		s.ParentApp = &app
+
 		if s.Parallelism == 0 {
 			s.Parallelism = 1
 		}
-		s.Command = strings.TrimSpace(s.Command)
 	}
 	err := app.ResolveDependencies()
 	if err != nil {

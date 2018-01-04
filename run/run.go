@@ -1,6 +1,8 @@
 package run
 
 import (
+	"sync"
+
 	"github.com/scaleci/scale/exec"
 )
 
@@ -44,12 +46,27 @@ func RunStages(app *App) error {
 		total += s.Parallelism
 	}
 
-	for _, s := range app.Stages {
-		if len(s.DependsOn) == 0 {
-			err := s.Run(total)
-			if err != nil {
-				return err
-			}
+	for _, stageGroups := range app.Graph {
+		var wg sync.WaitGroup
+		wg.Add(len(stageGroups))
+		errors := []error{}
+
+		for i := range stageGroups {
+			stage := stageGroups[i]
+
+			go func() {
+				if err := stage.Run(total); err != nil {
+					errors = append(errors, err)
+				}
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		// TODO: Need a more sane way to return these errors
+		if len(errors) > 0 {
+			return errors[0]
 		}
 	}
 
