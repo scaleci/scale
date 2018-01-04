@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -30,6 +31,7 @@ func Parse(path string) (*App, error) {
 		if s.Parallelism == 0 {
 			s.Parallelism = 1
 		}
+		s.Command = strings.TrimSpace(s.Command)
 	}
 
 	if app.GlobalConfig.BuildWith == "" {
