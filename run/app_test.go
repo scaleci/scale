@@ -16,6 +16,7 @@ func TestParse(t *testing.T) {
 	testConfig(app, t)
 	testServices(app, t)
 	testStages(app, t)
+	testGraph(app, t)
 }
 
 func testName(app *App, t *testing.T) {
@@ -82,6 +83,38 @@ func testStages(app *App, t *testing.T) {
 
 	rubocopStage := app.Stages["rubocop"]
 	testStage(rubocopStage, "rubocop", "bundle exec rubocop", []string{"db.setup"}, int64(1), t)
+}
+
+func testGraph(app *App, t *testing.T) {
+	expectedStageGraphLen := 2
+	if stageGraphLen := len(app.Graph); stageGraphLen != expectedStageGraphLen {
+		t.Fatalf("Expected stage graph length to be %d, got %d\n", expectedStageGraphLen, stageGraphLen)
+	}
+
+	expectedFirstStageLen := 1
+	if firstStageLen := len(app.Graph[0]); firstStageLen != expectedFirstStageLen {
+		t.Fatalf("Expected first stage length to be %d, got %d\n", expectedFirstStageLen, firstStageLen)
+	}
+
+	findStageID("db.setup", app.Graph[0], t)
+
+	expectedSecondStageLen := 2
+	if secondStageLen := len(app.Graph[1]); secondStageLen != expectedSecondStageLen {
+		t.Fatalf("Expected second stage length to be %d, got %d\n", expectedSecondStageLen, secondStageLen)
+	}
+
+	findStageID("rspec", app.Graph[1], t)
+	findStageID("rubocop", app.Graph[1], t)
+}
+
+func findStageID(id string, graph []*Stage, t *testing.T) {
+	for _, s := range graph {
+		if s.ID == id {
+			return
+		}
+	}
+
+	t.Fatalf("Expected to find %s, not in graph\n", id)
 }
 
 func testStage(s *Stage, id string, command string, dependsOn []string, parallelism int64, t *testing.T) {
