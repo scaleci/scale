@@ -99,19 +99,3 @@ func (a *App) ResolveDependencies() error {
 func (a *App) ImageName() string {
 	return fmt.Sprintf("scale-%s:%s", a.Name, a.GlobalConfig.Tag)
 }
-
-func (a *App) Env() map[string]string {
-	finalEnv := map[string]string{}
-
-	for k, v := range a.GlobalConfig.Env {
-		finalEnv[k] = v
-	}
-
-	for _, s := range a.Services {
-		for key, value := range s.Env() {
-			finalEnv[key] = value
-		}
-	}
-
-	return finalEnv
-}
