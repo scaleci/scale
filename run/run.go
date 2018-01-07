@@ -1,6 +1,7 @@
 package run
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/scaleci/scale/exec"
@@ -41,6 +42,7 @@ func StopServices(app *App) error {
 
 func RunStages(app *App) error {
 	var total int64 = 0
+	var index int64 = 0
 
 	for _, s := range app.Stages {
 		total += s.Parallelism
@@ -49,25 +51,21 @@ func RunStages(app *App) error {
 	for _, stageGroups := range app.Graph {
 		var wg sync.WaitGroup
 		wg.Add(len(stageGroups))
-		errors := []error{}
 
 		for i := range stageGroups {
 			stage := stageGroups[i]
 
-			go func() {
-				if err := stage.Run(total); err != nil {
-					errors = append(errors, err)
+			go func(i int64) {
+				if err := stage.Run(i, total); err != nil {
+					fmt.Errorf("error running stage: %+v for stage %s\n", err, stage.ID)
 				}
 				wg.Done()
-			}()
+			}(index)
+
+			index += stage.Parallelism
 		}
 
 		wg.Wait()
-
-		// TODO: Need a more sane way to return these errors
-		if len(errors) > 0 {
-			return errors[0]
-		}
 	}
 
 	return nil
