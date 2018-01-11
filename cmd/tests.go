@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/scaleci/scale/tests"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ import (
 
 var index int = -1
 var total int = -1
+var parallelizeOpts string
 
 var globCmd = &cobra.Command{
 	Use:   "glob",
@@ -42,11 +44,51 @@ var splitCmd = &cobra.Command{
 	Run:   runSplit,
 }
 
+var parallelizeCmd = &cobra.Command{
+	Use:   "parallelize",
+	Short: "Prepares a datastore to be used in parallel during stage runs",
+	Long:  "Prepares a datastore to be used in parallel during stage runs",
+	Args:  cobra.MinimumNArgs(1),
+	Run:   runParallelize,
+}
+
 // testsCmd represents the tests command
 var testsCmd = &cobra.Command{
 	Use:   "tests",
 	Short: "Utilities that help with tests",
 	Long:  "Utilities that help with tests",
+}
+
+func runParallelize(cmd *cobra.Command, args []string) {
+	protocol := args[0]
+
+	allowedProtocols := map[string]bool{
+		"postgres": true,
+	}
+
+	if val, ok := allowedProtocols[protocol]; !ok || val == false {
+		fmt.Printf("%s not supported\n", protocol)
+		os.Exit(1)
+	}
+
+	total, err := strconv.Atoi(os.Getenv("SCALE_CI_MAX"))
+	if err != nil || total <= 1 {
+		fmt.Printf("SCALE_CI_MAX must be set with a value greater than 1\n")
+		os.Exit(1)
+	}
+
+	parallelizeOptsMap := map[string]string{}
+	for _, opt := range strings.Split(parallelizeOpts, ",") {
+		kvPair := strings.Split(opt, "=")
+		if len(kvPair) == 2 {
+			parallelizeOptsMap[kvPair[0]] = kvPair[1]
+		}
+	}
+
+	if err = tests.Parallelize(protocol, total, parallelizeOptsMap); err != nil {
+		fmt.Printf("Error parallelizing datastores: %+v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runGlob(cmd *cobra.Command, args []string) {
@@ -90,8 +132,12 @@ func init() {
 	RootCmd.AddCommand(testsCmd)
 	testsCmd.AddCommand(globCmd)
 	testsCmd.AddCommand(splitCmd)
+	testsCmd.AddCommand(parallelizeCmd)
 
 	f := splitCmd.Flags()
 	f.IntVarP(&index, "index", "i", -1, "index of the container within which tests are run")
 	f.IntVarP(&total, "total", "t", -1, "total number of containers")
+
+	f = parallelizeCmd.Flags()
+	f.StringVarP(&parallelizeOpts, "options", "o", "", "options for parallelizing")
 }
