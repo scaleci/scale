@@ -3,38 +3,52 @@ title = "Rails App"
 [global]
   # If build_with is not specified then "Dockerfile" is assumed
   build_with = "Dockerfile.test"
-  version = 1
+  version = "1.0"
   test_results_path = "/tmp/test-results/rspec.xml"
   [global.env]
     RAILS_ENV = "test"
     AUTH_URL = "http://example.com/a/auth"
     AUTH_CLIENT_ID = "deadbeef"
+    DATABASE_USER = "postgres"
 
 [services]
   [services.database]
     image = "scaleci/postgres:9.6"
-    ports = ["5432/tcp"]
+    port = "5432/tcp"
+    protocol = "postgres"
 
   [services.redis]
     image = "scaleci/redis:2.1"
-    ports = ["6379/tcp"]
+    port = "6379/tcp"
 
 [stages]
   [stages."db.setup"]
-    command = "bundle exec rake db:create db:structure:load"
+    # by default scale tests parallelize postgres will look for the DATABASE_USER,DATABASE_HOST,DATABASE_PORT,DATABASE_PASSWORD
+    # env vars so you don't have to set them
+    #
+    # for this example, since DATABASE_USER is set to "postgres" above and password is empty and DATABASE_HOST, DATABASE_PORT
+    # are set by defining services
+    # we can replace the command below with `scale tests parallelize postgres`
+    command = """
+bundle exec rake db:create db:structure:load && \
+scale tests parallelize postgres --opts user=$DATABASE_USER,host=$DATABASE_HOST,port=$DATABASE_PORT,password=$DATABASE_PASSWORD
+"""
     # parallelism is 1 by default (so only one container is spawned)
 
   [stages.rspec]
     command = """
 bundle exec rspec --profile 10 \
-          --format RspecJunitFormatter \
-          --out /tmp/test-results/rspec.xml \
-          --require ./lib/block_progress_formatter.rb \
-          --format BlockProgressFormatter \
-          $(scale tests glob "spec/**/*_spec.rb" |xargs scale tests split)
+--format RspecJunitFormatter \
+--out /tmp/test-results/rspec.xml \
+--require ./lib/block_progress_formatter.rb \
+--format BlockProgressFormatter \
+$(scale tests glob "spec/**/*_spec.rb" |xargs scale tests split)\
 """
-    depends_on = ["db.setup"]
     parallelism = 8
+    depends_on = ["db.setup"]
+    # this is the default for postgres so we don't need to do this by default
+    [stages.rspec.parallelize_method]
+      postgres = "schema"
 
   [stages.rubocop]
     command = "bundle exec rubocop"
