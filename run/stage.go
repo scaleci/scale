@@ -72,8 +72,6 @@ func (s *Stage) RunIndividual(parallelismIndex int64, currentIndex int64, totalC
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c")
 	cmdArgs = append(cmdArgs, s.Command)
 
-	fmt.Printf("%s %+v\n", cmdName, cmdArgs)
-
 	// TODO: We need to track these errors and so far
 	exec.Run(cmdName, cmdArgs, fmt.Sprintf("docker.run.%s", s.ID))
 }
