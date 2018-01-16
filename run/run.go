@@ -15,6 +15,10 @@ func Build(app *App) error {
 		"-f", app.GlobalConfig.BuildWith,
 		"-t", app.ImageName()}
 
+	for k, v := range app.GlobalConfig.Env {
+		cmdArgs = append(cmdArgs, "--build-arg", fmt.Sprintf("%s=%s", k, v))
+	}
+
 	return exec.Run(cmdName, cmdArgs, "docker.build")
 }
 
