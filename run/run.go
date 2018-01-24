@@ -3,6 +3,7 @@ package run
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/scaleci/scale/exec"
 )
@@ -44,13 +45,20 @@ func StopServices(app *App) error {
 	return nil
 }
 
-func RunStages(app *App) error {
-	var total int64 = 0
-	var index int64 = 0
+func RunStages(app *App) {
+	var total int = 0
+	var index int = 0
 
 	for _, s := range app.Stages {
 		total += s.Parallelism
 	}
+
+	ticker := time.NewTicker(time.Second)
+	go func() {
+		for _ = range ticker.C {
+			fmt.Printf(".")
+		}
+	}()
 
 	for _, stageGroups := range app.Graph {
 		var wg sync.WaitGroup
@@ -59,10 +67,8 @@ func RunStages(app *App) error {
 		for i := range stageGroups {
 			stage := stageGroups[i]
 
-			go func(i int64) {
-				if err := stage.Run(i, total); err != nil {
-					fmt.Errorf("error running stage: %+v for stage %s\n", err, stage.ID)
-				}
+			go func(i int) {
+				stage.Run(i, total)
 				wg.Done()
 			}(index)
 
@@ -72,5 +78,16 @@ func RunStages(app *App) error {
 		wg.Wait()
 	}
 
-	return nil
+	ticker.Stop()
+	fmt.Printf("\n")
+
+	for _, stageGroups := range app.Graph {
+		for _, stage := range stageGroups {
+			for i := 0; i < stage.Parallelism; i++ {
+				fmt.Printf("\n==== Completed %s.%d with status code %d =====\n", stage.ID, i, stage.StatusCode[i])
+				fmt.Printf("%s\n", stage.StdOut[i].String())
+				fmt.Printf("%s\n", stage.StdErr[i].String())
+			}
+		}
+	}
 }

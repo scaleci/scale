@@ -1,6 +1,7 @@
 package run
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -11,29 +12,36 @@ type Stage struct {
 	ID          string
 	Command     string
 	DependsOn   []string `toml:"depends_on"`
-	Parallelism int64
+	Parallelism int
+
+	// Array by parallelism
+	StdOut     []bytes.Buffer
+	StdErr     []bytes.Buffer
+	StatusCode []int
 
 	ParentApp *App
 }
 
 // Call each invocation in a go routine
-func (s *Stage) Run(currentIndex int64, totalContainers int64) error {
+func (s *Stage) Run(currentIndex int, totalContainers int) {
 	var wg sync.WaitGroup
-	wg.Add(int(s.Parallelism))
+	wg.Add(s.Parallelism)
 
-	for index := int64(0); index < s.Parallelism; index++ {
-		go func(i int64, ci int64, t int64) {
+	s.StdOut = make([]bytes.Buffer, int(s.Parallelism))
+	s.StdErr = make([]bytes.Buffer, int(s.Parallelism))
+	s.StatusCode = make([]int, int(s.Parallelism))
+
+	for index := int(0); index < s.Parallelism; index++ {
+		go func(i int, ci int, t int) {
 			s.RunIndividual(i, ci, t)
 			wg.Done()
 		}(index, currentIndex, totalContainers)
 	}
 
 	wg.Wait()
-
-	return nil
 }
 
-func (s *Stage) RunIndividual(parallelismIndex int64, currentIndex int64, totalContainers int64) {
+func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalContainers int) {
 	cmdName := "docker"
 	cmdArgs := []string{
 		"run",
@@ -54,8 +62,8 @@ func (s *Stage) RunIndividual(parallelismIndex int64, currentIndex int64, totalC
 	env["SCALE_CI_INDEX"] = fmt.Sprintf("%d", parallelismIndex)
 
 	for _, service := range s.ParentApp.Services {
-		parallelIndex := int64(-1)
-		if s.Parallelism > int64(1) {
+		parallelIndex := int(-1)
+		if s.Parallelism > int(1) {
 			parallelIndex = currentIndex + parallelismIndex
 		}
 
@@ -73,5 +81,8 @@ func (s *Stage) RunIndividual(parallelismIndex int64, currentIndex int64, totalC
 	cmdArgs = append(cmdArgs, s.Command)
 
 	// TODO: We need to track these errors and so far
-	exec.Run(cmdName, cmdArgs, fmt.Sprintf("docker.run.%s", s.ID))
+	s.StatusCode[parallelismIndex] = exec.RunAndCaptureOutput(cmdName,
+		cmdArgs,
+		&s.StdOut[parallelismIndex],
+		&s.StdErr[parallelismIndex])
 }
