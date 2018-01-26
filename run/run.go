@@ -49,6 +49,7 @@ func StopServices(app *App) error {
 func RunStages(app *App) {
 	var total int = 0
 	var index int = 0
+	var lastCompletedStageGroupIndex int = 0
 
 	for _, s := range app.Stages {
 		total += s.Parallelism
@@ -61,14 +62,14 @@ func RunStages(app *App) {
 		}
 	}()
 
-	for _, stageGroups := range app.Graph {
+	for stageGroupIndex, stageGroups := range app.Graph {
 		var wg sync.WaitGroup
 		wg.Add(len(stageGroups))
 
 		if len(stageGroups) == 1 {
 			fmt.Printf("\n==== Running stage: %s ====\n", stageGroups[0].ID)
 		} else {
-			fmt.Printf("\n==== Running stages: %s ====\n", stageNameCollection(stageGroups))
+			fmt.Printf("\n==== Running stages in parallel: %s ====\n", stageNameCollection(stageGroups))
 		}
 
 		for i := range stageGroups {
@@ -83,18 +84,34 @@ func RunStages(app *App) {
 		}
 
 		wg.Wait()
+
+		status := 0
+		// If any one of the stages returned with
+		// a non-zero return code, status will be > 0
+		for _, s := range stageGroups {
+			for _, st := range s.StatusCode {
+				status += st
+			}
+		}
+
+		if status > 0 {
+			lastCompletedStageGroupIndex = stageGroupIndex
+			break
+		}
 	}
 
 	ticker.Stop()
-	for _, stageGroups := range app.Graph {
-		for _, stage := range stageGroups {
-			for i := 0; i < stage.Parallelism; i++ {
-				fmt.Printf("\n==== Completed %s.%d with status code %d =====\n", stage.ID, i, stage.StatusCode[i])
-				if stdout := stage.StdOut[i].String(); stdout != "" {
-					fmt.Printf("%s\n", stdout)
-				}
-				if stderr := stage.StdErr[i].String(); stderr != "" {
-					fmt.Printf("%s\n", stderr)
+	for i, stageGroups := range app.Graph {
+		if i <= lastCompletedStageGroupIndex {
+			for _, stage := range stageGroups {
+				for i := 0; i < stage.Parallelism; i++ {
+					fmt.Printf("\n==== Completed %s.%d with status code %d =====\n", stage.ID, i, stage.StatusCode[i])
+					if stdout := stage.StdOut[i].String(); stdout != "" {
+						fmt.Printf("%s\n", stdout)
+					}
+					if stderr := stage.StdErr[i].String(); stderr != "" {
+						fmt.Printf("%s\n", stderr)
+					}
 				}
 			}
 		}
