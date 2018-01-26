@@ -83,7 +83,7 @@ func (s *Service) SetSocket() error {
 	return fmt.Errorf("ContainerID is not set")
 }
 
-func (s *Service) Env(index int64) map[string]string {
+func (s *Service) Env(index int) map[string]string {
 	env := map[string]string{}
 	protocol := s.ID
 
@@ -94,7 +94,7 @@ func (s *Service) Env(index int64) map[string]string {
 	urlKey := fmt.Sprintf("%s_URL", strings.ToUpper(s.ID))
 	protocolUrlKey := fmt.Sprintf("%s_URL", strings.ToUpper(protocol))
 	urlValue := fmt.Sprintf("%s://%s", protocol, s.Socket)
-	if index > int64(-1) {
+	if index > int(-1) {
 		urlValue = fmt.Sprintf("%s://%s/%s", protocol, s.Socket, s.Database(index))
 	}
 	hostKey := fmt.Sprintf("%s_HOST", strings.ToUpper(s.ID))
@@ -114,7 +114,7 @@ func (s *Service) Env(index int64) map[string]string {
 	return env
 }
 
-func (s *Service) Database(index int64) string {
+func (s *Service) Database(index int) string {
 	protocol := s.ID
 	database := fmt.Sprintf("%d", index)
 

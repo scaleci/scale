@@ -72,8 +72,8 @@ func runParallelize(cmd *cobra.Command, args []string) {
 	}
 
 	total, err := strconv.Atoi(os.Getenv("SCALE_CI_MAX"))
-	if err != nil || total <= 1 {
-		fmt.Printf("SCALE_CI_MAX must be set with a value greater than 1\n")
+	if err != nil || total < 1 {
+		fmt.Printf("SCALE_CI_MAX must be set with a value greater than 0\n")
 		os.Exit(1)
 	}
 
