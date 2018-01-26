@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,6 +65,12 @@ func RunStages(app *App) {
 		var wg sync.WaitGroup
 		wg.Add(len(stageGroups))
 
+		if len(stageGroups) == 1 {
+			fmt.Printf("\n==== Running stage: %s ====\n", stageGroups[0].ID)
+		} else {
+			fmt.Printf("\n==== Running stages: %s ====\n", stageNameCollection(stageGroups))
+		}
+
 		for i := range stageGroups {
 			stage := stageGroups[i]
 
@@ -79,15 +86,26 @@ func RunStages(app *App) {
 	}
 
 	ticker.Stop()
-	fmt.Printf("\n")
-
 	for _, stageGroups := range app.Graph {
 		for _, stage := range stageGroups {
 			for i := 0; i < stage.Parallelism; i++ {
 				fmt.Printf("\n==== Completed %s.%d with status code %d =====\n", stage.ID, i, stage.StatusCode[i])
-				fmt.Printf("%s\n", stage.StdOut[i].String())
-				fmt.Printf("%s\n", stage.StdErr[i].String())
+				if stdout := stage.StdOut[i].String(); stdout != "" {
+					fmt.Printf("%s\n", stdout)
+				}
+				if stderr := stage.StdErr[i].String(); stderr != "" {
+					fmt.Printf("%s\n", stderr)
+				}
 			}
 		}
 	}
+}
+
+func stageNameCollection(stages []*Stage) string {
+	stageNames := []string{}
+	for _, stage := range stages {
+		stageNames = append(stageNames, stage.ID)
+	}
+
+	return strings.Join(stageNames, " and ")
 }
