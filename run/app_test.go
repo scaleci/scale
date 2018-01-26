@@ -75,14 +75,14 @@ func testService(s *Service, id string, image string, port string, t *testing.T)
 
 func testStages(app *App, t *testing.T) {
 	dbSetupStage := app.Stages["db.setup"]
-	testStage(dbSetupStage, "db.setup", "bundle exec rake db:create db:structure:load && scale tests parallelize postgres --opts user=$DATABASE_USER,host=$DATABASE_HOST,port=$DATABASE_PORT,password=$DATABASE_PASSWORD", []string{}, int64(1), t)
+	testStage(dbSetupStage, "db.setup", "bundle exec rake db:create db:structure:load && scale tests parallelize postgres --opts user=$DATABASE_USER,host=$DATABASE_HOST,port=$DATABASE_PORT,password=$DATABASE_PASSWORD", []string{}, int(1), t)
 
 	rspecStage := app.Stages["rspec"]
 	rspecCommand := "bundle exec rspec --profile 10 --format RspecJunitFormatter --out /tmp/test-results/rspec.xml --require ./lib/block_progress_formatter.rb --format BlockProgressFormatter $(scale tests glob \"spec/**/*_spec.rb\" |xargs scale tests split)"
-	testStage(rspecStage, "rspec", rspecCommand, []string{"db.setup"}, int64(8), t)
+	testStage(rspecStage, "rspec", rspecCommand, []string{"db.setup"}, int(8), t)
 
 	rubocopStage := app.Stages["rubocop"]
-	testStage(rubocopStage, "rubocop", "bundle exec rubocop", []string{"db.setup"}, int64(1), t)
+	testStage(rubocopStage, "rubocop", "bundle exec rubocop", []string{"db.setup"}, int(1), t)
 }
 
 func testGraph(app *App, t *testing.T) {
@@ -117,7 +117,7 @@ func findStageID(id string, graph []*Stage, t *testing.T) {
 	t.Fatalf("Expected to find %s, not in graph\n", id)
 }
 
-func testStage(s *Stage, id string, command string, dependsOn []string, parallelism int64, t *testing.T) {
+func testStage(s *Stage, id string, command string, dependsOn []string, parallelism int, t *testing.T) {
 	t.Logf("stage: %+v\n", s)
 
 	if s.ID != id {

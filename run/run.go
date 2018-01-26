@@ -2,7 +2,9 @@ package run
 
 import (
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/scaleci/scale/exec"
 )
@@ -44,25 +46,36 @@ func StopServices(app *App) error {
 	return nil
 }
 
-func RunStages(app *App) error {
-	var total int64 = 0
-	var index int64 = 0
+func RunStages(app *App) {
+	var total int = 0
+	var index int = 0
 
 	for _, s := range app.Stages {
 		total += s.Parallelism
 	}
 
+	ticker := time.NewTicker(time.Second)
+	go func() {
+		for _ = range ticker.C {
+			fmt.Printf(".")
+		}
+	}()
+
 	for _, stageGroups := range app.Graph {
 		var wg sync.WaitGroup
 		wg.Add(len(stageGroups))
 
+		if len(stageGroups) == 1 {
+			fmt.Printf("\n==== Running stage: %s ====\n", stageGroups[0].ID)
+		} else {
+			fmt.Printf("\n==== Running stages: %s ====\n", stageNameCollection(stageGroups))
+		}
+
 		for i := range stageGroups {
 			stage := stageGroups[i]
 
-			go func(i int64) {
-				if err := stage.Run(i, total); err != nil {
-					fmt.Errorf("error running stage: %+v for stage %s\n", err, stage.ID)
-				}
+			go func(i int) {
+				stage.Run(i, total)
 				wg.Done()
 			}(index)
 
@@ -72,5 +85,27 @@ func RunStages(app *App) error {
 		wg.Wait()
 	}
 
-	return nil
+	ticker.Stop()
+	for _, stageGroups := range app.Graph {
+		for _, stage := range stageGroups {
+			for i := 0; i < stage.Parallelism; i++ {
+				fmt.Printf("\n==== Completed %s.%d with status code %d =====\n", stage.ID, i, stage.StatusCode[i])
+				if stdout := stage.StdOut[i].String(); stdout != "" {
+					fmt.Printf("%s\n", stdout)
+				}
+				if stderr := stage.StdErr[i].String(); stderr != "" {
+					fmt.Printf("%s\n", stderr)
+				}
+			}
+		}
+	}
+}
+
+func stageNameCollection(stages []*Stage) string {
+	stageNames := []string{}
+	for _, stage := range stages {
+		stageNames = append(stageNames, stage.ID)
+	}
+
+	return strings.Join(stageNames, " and ")
 }
