@@ -4,7 +4,7 @@ set -e
 export APP=${1:?"app is required"}
 export VERSION=${2:?"version is required"}
 export BUILD_DIR=./build
-export RELEASE_APP_NAME=scale-dev
+export RELEASE_APP_NAME=scale
 export SCALEDIR="${GOPATH:-~/go}"
 
 rm -f "$BUILD_DIR/$APP"
