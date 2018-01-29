@@ -17,6 +17,10 @@ docker:
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
 	@script/docker $(APP) $(VERSION)
 
+docker.push: docker
+	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
+	@docker push scaleci/scale:$(VERSION)
+
 format:
 	go fmt ./...
 
