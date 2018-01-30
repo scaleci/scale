@@ -2,24 +2,24 @@ NO_COLOR=\033[0m
 OK_COLOR=\033[32;01m
 ERROR_COLOR=\033[31;01m
 WARN_COLOR=\033[33;01m
-APP=nestor-cli
+APP=scale
 REVISION=$(shell git rev-parse --short HEAD)
-BASE_VERSION=$(shell cat NESTOR_VERSION)
+BASE_VERSION=$(shell cat VERSION)
 VERSION=$(BASE_VERSION)-$(REVISION)
 
 all: build
 
-build: build_linux
+build:
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
 	@script/build $(APP) $(VERSION)
 
-build_linux: clean
-	@echo "$(OK_COLOR)==> Building revision $(VERSION) for Linux...$(NO_COLOR)"
-	@script/build_linux $(APP) $(VERSION)
-
-prod: clean
+docker:
 	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
-	@script/prod $(APP) $(VERSION)
+	@script/docker $(APP) $(VERSION)
+
+docker.push: docker
+	@echo "$(OK_COLOR)==> Building revision $(VERSION)...$(NO_COLOR)"
+	@docker push scaleci/scale:$(VERSION)
 
 format:
 	go fmt ./...

@@ -23,7 +23,7 @@ type Stage struct {
 }
 
 // Call each invocation in a go routine
-func (s *Stage) Run(currentIndex int, totalContainers int) {
+func (s *Stage) Run(currentIndex int, totalContainers int, scaleBinaryPath string) {
 	var wg sync.WaitGroup
 	wg.Add(s.Parallelism)
 
@@ -33,7 +33,7 @@ func (s *Stage) Run(currentIndex int, totalContainers int) {
 
 	for index := int(0); index < s.Parallelism; index++ {
 		go func(i int, ci int, t int) {
-			s.RunIndividual(i, ci, t)
+			s.RunIndividual(i, ci, t, scaleBinaryPath)
 			wg.Done()
 		}(index, currentIndex, totalContainers)
 	}
@@ -41,7 +41,7 @@ func (s *Stage) Run(currentIndex int, totalContainers int) {
 	wg.Wait()
 }
 
-func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalContainers int) {
+func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalContainers int, scaleBinaryPath string) {
 	cmdName := "docker"
 	cmdArgs := []string{
 		"run",
