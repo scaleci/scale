@@ -10,6 +10,6 @@ export SCALEDIR="${GOPATH:-~/go}"
 rm -f "$BUILD_DIR/$APP"
 mkdir -p "$BUILD_DIR"
 
-go build -ldflags="-X github.com/scaleci/scale/run.scaleBinaryType=local-file -X github.com/scaleci/scale/run.scaleBinaryPath=${SCALEDIR}/src/github.com/scaleci/scale/build/linux/scale-dev-linux" -x -v -o $BUILD_DIR/$RELEASE_APP_NAME github.com/scaleci/scale
+go build -ldflags="-X github.com/scaleci/scale/run.scaleVersion=${VERSION} -X github.com/scaleci/scale/run.scaleBinaryType=docker -X github.com/scaleci/scale/run.scaleBinaryPath=scaleci/scale:${VERSION}" -x -v -o $BUILD_DIR/$RELEASE_APP_NAME github.com/scaleci/scale
 
 echo "Binary built successfully: $BUILD_DIR/$RELEASE_APP_NAME"
