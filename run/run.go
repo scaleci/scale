@@ -46,7 +46,7 @@ func StopServices(app *App) error {
 	return nil
 }
 
-func RunStages(app *App) {
+func RunStages(app *App, scaleBinaryPath string) {
 	var total int = 0
 	var index int = 0
 	var lastCompletedStageGroupIndex int = 0
@@ -76,7 +76,7 @@ func RunStages(app *App) {
 			stage := stageGroups[i]
 
 			go func(i int) {
-				stage.Run(i, total)
+				stage.Run(i, total, scaleBinaryPath)
 				wg.Done()
 			}(index)
 

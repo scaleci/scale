@@ -32,7 +32,12 @@ var runCmd = &cobra.Command{
 
 func runTests(cmd *cobra.Command, args []string) {
 	// Download Scale Binary
-	run.DownloadScaleBinary()
+	fmt.Printf("Downloading scale binary...\n")
+	scaleBinaryPath, err := run.DownloadScaleBinary()
+	if err != nil {
+		fmt.Printf("Error downloading scale binary: %+v\n", err)
+		os.Exit(1)
+	}
 
 	configFilePath := "./scale.toml"
 
@@ -62,7 +67,7 @@ func runTests(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	run.RunStages(app)
+	run.RunStages(app, scaleBinaryPath)
 }
 
 func init() {
