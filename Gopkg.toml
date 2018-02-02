@@ -24,3 +24,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/mattn/go-zglob"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mholt/archiver"
