@@ -17,6 +17,28 @@ type Service struct {
 	Socket string
 }
 
+func StartServices(app *App) error {
+	for _, s := range app.Services {
+		err := s.Start()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func StopServices(app *App) error {
+	for _, s := range app.Services {
+		err := s.Stop()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) PortAsArgs() []string {
 	port := strings.Split(s.Port, "/")[0]
 	return []string{"-p", fmt.Sprintf("%s:%s", port, port)}
