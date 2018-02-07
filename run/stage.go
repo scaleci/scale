@@ -2,12 +2,18 @@ package run
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/scaleci/scale/exec"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/strslice"
+	"github.com/moby/moby/client"
+	"github.com/moby/moby/pkg/stdcopy"
 )
 
 type Stage struct {
@@ -17,9 +23,10 @@ type Stage struct {
 	Parallelism int
 
 	// Array by parallelism
-	StdOut     []bytes.Buffer
-	StdErr     []bytes.Buffer
-	StatusCode []int
+	StdOut      []bytes.Buffer
+	StdErr      []bytes.Buffer
+	StatusCode  []int
+	ContainerID []string
 
 	ParentApp *App
 }
@@ -113,6 +120,7 @@ func (s *Stage) Run(currentIndex int, totalContainers int, scaleBinaryPath strin
 	s.StdOut = make([]bytes.Buffer, int(s.Parallelism))
 	s.StdErr = make([]bytes.Buffer, int(s.Parallelism))
 	s.StatusCode = make([]int, int(s.Parallelism))
+	s.ContainerID = make([]string, int(s.Parallelism))
 
 	for index := int(0); index < s.Parallelism; index++ {
 		go func(i int, ci int, t int) {
@@ -124,25 +132,69 @@ func (s *Stage) Run(currentIndex int, totalContainers int, scaleBinaryPath strin
 	wg.Wait()
 }
 
-func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalContainers int, scaleBinaryPath string) {
-	cmdName := "docker"
-	cmdArgs := []string{
-		"run",
-		"--mount",
-		fmt.Sprintf("type=bind,source=%s,target=/bin/scale", scaleBinaryPath),
+func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalContainers int, scaleBinaryPath string) error {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return err
 	}
 
-	env := make(map[string]string)
-	for configKey, configVal := range s.ParentApp.GlobalConfig.Env {
-		env[configKey] = configVal
+	resp, err := cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: s.ParentApp.ImageName(),
+			Env:   envForStage(s, parallelismIndex, currentIndex, totalContainers),
+			Cmd: strslice.StrSlice{
+				"/bin/bash",
+				"-c",
+				s.Command,
+			},
+		},
+		&container.HostConfig{
+			Mounts: []mount.Mount{
+				mount.Mount{
+					Source: scaleBinaryPath,
+					Target: "/bin/scale",
+					Type:   "bind",
+				},
+			},
+		}, nil, "")
+
+	if err != nil {
+		return err
 	}
+	s.ContainerID[currentIndex] = resp.ID
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+	reader, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = stdcopy.StdCopy(&s.StdOut[parallelismIndex],
+		&s.StdErr[parallelismIndex],
+		reader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func envForStage(s *Stage, parallelismIndex int, currentIndex int, totalContainers int) []string {
+	envArray := []string{}
+
+	for configKey, configVal := range s.ParentApp.GlobalConfig.Env {
+		envArray = append(envArray, fmt.Sprintf("%s=%s", configKey, configVal))
+	}
+
 	// Inject "running state" into the container
 	// MAX is the total number of containers (across all stages) that are part of this run
-	env["SCALE_CI_MAX"] = fmt.Sprintf("%d", totalContainers)
+	envArray = append(envArray, fmt.Sprintf("SCALE_CI_MAX=%d", totalContainers))
 	// TOTAL is the parallelism of the current stage
-	env["SCALE_CI_TOTAL"] = fmt.Sprintf("%d", s.Parallelism)
+	envArray = append(envArray, fmt.Sprintf("SCALE_CI_TOTAL=%d", s.Parallelism))
 	// INDEX is the index of the current running container
-	env["SCALE_CI_INDEX"] = fmt.Sprintf("%d", parallelismIndex)
+	envArray = append(envArray, fmt.Sprintf("SCALE_CI_INDEX=%d", parallelismIndex))
 
 	for _, service := range s.ParentApp.Services {
 		parallelIndex := int(-1)
@@ -151,21 +203,9 @@ func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalConta
 		}
 
 		for serviceKey, serviceVal := range service.Env(parallelIndex) {
-			env[serviceKey] = serviceVal
+			envArray = append(envArray, fmt.Sprintf("%s=%s", serviceKey, serviceVal))
 		}
 	}
 
-	for k, v := range env {
-		cmdArgs = append(cmdArgs, "-e", fmt.Sprintf("%s=%s", k, v))
-	}
-
-	cmdArgs = append(cmdArgs, s.ParentApp.ImageName())
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c")
-	cmdArgs = append(cmdArgs, s.Command)
-
-	// TODO: We need to track these errors and so far
-	s.StatusCode[parallelismIndex] = exec.RunAndCaptureOutput(cmdName,
-		cmdArgs,
-		&s.StdOut[parallelismIndex],
-		&s.StdErr[parallelismIndex])
+	return envArray
 }
