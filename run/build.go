@@ -1,11 +1,8 @@
 package run
 
 import (
-	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"path/filepath"
 
 	"github.com/docker/docker/api/types"
@@ -46,23 +43,9 @@ func Build(app *App) error {
 	if err != nil {
 		return err
 	}
-	defer imageBuildResponse.Body.Close()
 
-	scanner := bufio.NewScanner(imageBuildResponse.Body)
-	for scanner.Scan() {
-		var out map[string]interface{}
-		err := json.Unmarshal(scanner.Bytes(), &out)
-
-		if err != nil {
-			return err
-		}
-
-		if stream, ok := out["stream"].(string); ok {
-			fmt.Printf(stream)
-		}
-		if errorMsg, ok := out["error"].(string); ok {
-			fmt.Printf("%s\n", errorMsg)
-		}
+	if err := StreamDockerResponse(imageBuildResponse.Body, "stream", "error"); err != nil {
+		return err
 	}
 
 	return nil
