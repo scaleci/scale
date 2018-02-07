@@ -28,7 +28,8 @@ func Build(app *App) error {
 	}
 
 	for k, v := range app.GlobalConfig.Env {
-		buildArgs[k] = &v
+		argValue := v
+		buildArgs[k] = &argValue
 	}
 
 	imageBuildResponse, err := cli.ImageBuild(
