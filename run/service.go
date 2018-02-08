@@ -1,9 +1,14 @@
 package run
 
 import (
+	"context"
 	"fmt"
-	"os/exec"
 	"strings"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/client"
 )
 
 type Service struct {
@@ -17,26 +22,67 @@ type Service struct {
 	Socket string
 }
 
-func (s *Service) PortAsArgs() []string {
-	port := strings.Split(s.Port, "/")[0]
-	return []string{"-p", fmt.Sprintf("%s:%s", port, port)}
+func StartServices(app *App) error {
+	for _, s := range app.Services {
+		err := s.Start()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func StopServices(app *App) error {
+	for _, s := range app.Services {
+		err := s.Stop()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) Start() error {
-	cmdName := "docker"
-	cmdArgs := []string{
-		"run",
-		"-d",
-	}
-
-	cmdArgs = append(cmdArgs, s.PortAsArgs()...)
-	cmdArgs = append(cmdArgs, s.Image)
-	cmd := exec.Command(cmdName, cmdArgs...)
-	out, err := cmd.Output()
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
 	}
-	s.ContainerID = strings.Trim(string(out), "\n")
+
+	_, _, err = cli.ImageInspectWithRaw(context.Background(), scaleBinaryPath)
+
+	if err != nil && client.IsErrImageNotFound(err) {
+		imagePullBody, err := cli.ImagePull(ctx, s.Image, types.ImagePullOptions{})
+		if err != nil {
+			return err
+		}
+
+		if err := StreamDockerResponse(imagePullBody, "status", "error"); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	resp, err := cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: s.Image,
+		},
+		&container.HostConfig{
+			PortBindings: nat.PortMap{nat.Port(s.Port): []nat.PortBinding{nat.PortBinding{HostPort: s.Port}}},
+		}, nil, "")
+
+	if err != nil {
+		return err
+	}
+
+	s.ContainerID = resp.ID
+	if err := cli.ContainerStart(ctx, s.ContainerID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+
 	err = s.SetSocket()
 	if err != nil {
 		return err
@@ -48,9 +94,12 @@ func (s *Service) Start() error {
 
 func (s *Service) Stop() error {
 	if s.ContainerID != "" {
-		cmd := exec.Command("docker", "stop", s.ContainerID, "-t", "5")
-		_, err := cmd.Output()
+		cli, err := client.NewEnvClient()
 		if err != nil {
+			return err
+		}
+
+		if err = cli.ContainerStop(context.Background(), s.ContainerID, nil); err != nil {
 			return err
 		}
 
@@ -63,19 +112,33 @@ func (s *Service) Stop() error {
 
 func (s *Service) SetSocket() error {
 	if s.ContainerID != "" {
-		cmdName := "docker"
-		cmdArgs := []string{
-			"inspect",
-			fmt.Sprintf("--format={{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}:{{(index (index .NetworkSettings.Ports \"%s\") 0).HostPort}}", s.Port),
-			s.ContainerID,
-		}
-		cmd := exec.Command(cmdName, cmdArgs...)
-		out, err := cmd.Output()
+		host, port := "", ""
+		ctx := context.Background()
+		cli, err := client.NewEnvClient()
 		if err != nil {
 			return err
 		}
-		s.Socket = strings.Trim(string(out), "\n")
-		s.Host = strings.Split(s.Socket, ":")[0]
+
+		containerJSON, err := cli.ContainerInspect(ctx, s.ContainerID)
+		if err != nil {
+			return err
+		}
+
+		if endpointSettings := containerJSON.NetworkSettings.Networks["bridge"]; endpointSettings != nil {
+			host = endpointSettings.IPAddress
+
+			portMap := containerJSON.NetworkSettings.Ports[nat.Port(s.Port)]
+			if len(portMap) > 0 {
+				port = portMap[0].HostPort
+			}
+		}
+
+		if host == "" || port == "" {
+			return fmt.Errorf("Could not find host/port for service: %s\n", s.ID)
+		}
+
+		s.Host = host
+		s.Socket = fmt.Sprintf("%s:%s", host, port)
 
 		return nil
 	}

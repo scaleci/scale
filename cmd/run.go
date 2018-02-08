@@ -17,6 +17,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/scaleci/scale/run"
 	"github.com/spf13/cobra"
@@ -51,6 +53,15 @@ func runTests(cmd *cobra.Command, args []string) {
 		fmt.Printf("Error parsing scale.toml file: %+v\n", err)
 		os.Exit(1)
 	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		run.StopStages(app)
+		run.StopServices(app)
+		os.Exit(1)
+	}()
 
 	defer run.StopServices(app)
 
