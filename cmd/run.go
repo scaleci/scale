@@ -54,15 +54,6 @@ func runTests(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		run.StopStages(app)
-		run.StopServices(app)
-		os.Exit(1)
-	}()
-
 	defer run.StopServices(app)
 
 	fmt.Printf("Running %s...\n", app.Name)
@@ -71,6 +62,15 @@ func runTests(cmd *cobra.Command, args []string) {
 		fmt.Printf("Error building app %s: %+v\n", app.Name, err)
 		os.Exit(1)
 	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		run.StopStages(app)
+		run.StopServices(app)
+		os.Exit(1)
+	}()
 
 	err = run.StartServices(app)
 	if err != nil {

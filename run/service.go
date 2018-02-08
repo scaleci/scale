@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -99,7 +100,8 @@ func (s *Service) Stop() error {
 			return err
 		}
 
-		if err = cli.ContainerStop(context.Background(), s.ContainerID, nil); err != nil {
+		timeout := 300 * time.Millisecond
+		if err = cli.ContainerStop(context.Background(), s.ContainerID, &timeout); err != nil {
 			return err
 		}
 

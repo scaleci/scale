@@ -42,10 +42,10 @@ func StopStages(app *App) error {
 		for _, stage := range stageGroup {
 			for _, containerID := range stage.ContainerID {
 				if containerID != "" {
-					if err = cli.ContainerStop(ctx, containerID, nil); err != nil {
+					timeout := 300 * time.Millisecond
+					if err = cli.ContainerStop(ctx, containerID, &timeout); err != nil {
 						return err
 					}
-
 				}
 			}
 		}
