@@ -31,6 +31,29 @@ type Stage struct {
 	ParentApp *App
 }
 
+func StopStages(app *App) error {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return err
+	}
+
+	for _, stageGroup := range app.Graph {
+		for _, stage := range stageGroup {
+			for _, containerID := range stage.ContainerID {
+				if containerID != "" {
+					if err = cli.ContainerStop(ctx, containerID, nil); err != nil {
+						return err
+					}
+
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func RunStages(app *App, scaleBinaryPath string) {
 	var total int = 0
 	var index int = 0

@@ -58,6 +58,7 @@ func runTests(cmd *cobra.Command, args []string) {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
+		run.StopStages(app)
 		run.StopServices(app)
 		os.Exit(1)
 	}()
