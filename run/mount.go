@@ -47,12 +47,18 @@ func dockerPull() error {
 		return err
 	}
 
-	_, err = cli.ImagePull(
-		context.Background(),
-		scaleBinaryPath,
-		types.ImagePullOptions{})
+	_, _, err = cli.ImageInspectWithRaw(context.Background(), scaleBinaryPath)
 
-	if err != nil {
+	if err != nil && client.IsErrImageNotFound(err) {
+		_, err = cli.ImagePull(
+			context.Background(),
+			scaleBinaryPath,
+			types.ImagePullOptions{})
+
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 

@@ -51,12 +51,18 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	imagePullBody, err := cli.ImagePull(ctx, s.Image, types.ImagePullOptions{})
-	if err != nil {
-		return err
-	}
+	_, _, err = cli.ImageInspectWithRaw(context.Background(), scaleBinaryPath)
 
-	if err := StreamDockerResponse(imagePullBody, "status", "error"); err != nil {
+	if err != nil && client.IsErrImageNotFound(err) {
+		imagePullBody, err := cli.ImagePull(ctx, s.Image, types.ImagePullOptions{})
+		if err != nil {
+			return err
+		}
+
+		if err := StreamDockerResponse(imagePullBody, "status", "error"); err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 
