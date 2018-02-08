@@ -166,7 +166,14 @@ func (s *Stage) RunIndividual(parallelismIndex int, currentIndex int, totalConta
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
-	reader, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{})
+
+	status, err := cli.ContainerWait(ctx, resp.ID)
+	if err != nil {
+		return err
+	}
+	s.StatusCode[currentIndex] = int(status)
+
+	reader, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		return err
 	}
